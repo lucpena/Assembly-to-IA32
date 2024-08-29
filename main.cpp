@@ -22,7 +22,7 @@ int main( int argc, char *argv[] )
     string fileName = argv[1];
     string fileLine = "";
 
-    Tradutor tradutor;
+    Translator translator;
     
     ifstream input(fileName);
 
@@ -48,9 +48,46 @@ int main( int argc, char *argv[] )
 
 
     // Traduzindo o Assembly
-    for (auto i = program_source.begin(); i != program_source.end(); ++i)
+    for (int i = 0; i != program_source.size(); ++i)
     {
-        
+       cout << program_source[i] << " ";
+
+       // Adquirindo o tamanho da intrucao
+       int memSpcae = getMemorySpace(program_source[i]);
+
+       switch (stoi(program_source[i]))
+       {
+            case 1:  // ADD
+                break;
+            case 2:  // SUB
+                break;
+            case 3:  // MUL
+                break;
+            case 4:  // DIV
+                break;
+            case 5:  // JMP
+                break;
+            case 6:  // JMPN
+                break;
+            case 7:  // JMPP
+                break;
+            case 8:  // JMPZ
+                break;
+            case 9:  // COPY
+                break;
+            case 10: // LOAD
+                break;
+            case 11: // STORE
+                break;
+            case 12: // INPUT
+                break;
+            case 13: // OUTPUT
+                break;
+            case 14: // STOP
+                break;
+            default: // Unknown opcode
+                break;
+       }
     }
 
     // Parte Opcional
@@ -59,6 +96,7 @@ int main( int argc, char *argv[] )
 
     // Mostrando os resultados
     system("clear");
+    cout << endl;
     cout << endl;
     cout << " Lucas Pena [13/0056162]\n";
     cout << " Tradutor de Assembly Inventado para IA-32.\n";

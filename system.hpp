@@ -50,30 +50,38 @@ map<int, string> instructions =
 	{13, "OUTPUT"}, {14, "STOP"}
 };
 
+map<int, string> IA32instructions = 
+{
+	{1, "ADD"}, {2, "SUB"}, {3, "MUL"},
+	{4, "DIV"}, {5, "JMP"}, {6, "JMPN"},
+	{7, "JMPP"}, {8, "JMPZ"}, {9, "COPY"},
+	{10, "LOAD"}, {11, "STORE"}, {12, "INPUT"},
+	{13, "OUTPUT"}, {14, "STOP"}
+};
+
+
 // Variaveis do Tradutor
 vector<string>              program_source = {};
 map<uint32_t, string>       program_IA32   = {};
 
-class Tradutor
+class Translator
 {
 private:
 
-
+    string m_Accumulator = "";
 
 public:
 
-    Tradutor() {}
-    ~Tradutor() {};
+    Translator() {}
+    ~Translator() {};
 
-    bool AssemblyToIA32();
+    string getAccumulator() { return m_Accumulator;}
+    
+    void setAccumulator( string value ) { m_Accumulator = value; }
 
-};
 
-bool Tradutor::AssemblyToIA32()
-{
+}; 
 
-    return true;
-}
 
 /********************************
     Funcoes ajudantes
