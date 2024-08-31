@@ -15,19 +15,17 @@
 
 using std::endl;
 using std::cout;
-using std::cerr;
 using std::cin;
 using std::getline;
 using std::string;
-using std::map;
 using std::vector;
-using std::pair;
+using std::map;
 using std::ifstream;
 using std::ofstream;
 using std::stringstream;
-using std::toupper;
 using std::stoi;
 using std::to_string;
+using std::find;
 
 /********************************
     Configuracoes
@@ -51,22 +49,6 @@ map<int, string> instructions =
 	{13, "OUTPUT"}, {14, "STOP"}
 };
 
-class ResultMessage
-{
-private:
-
-    bool m_Success;
-    string m_Message;
-
-public:
-
-    ResultMessage()
-    : m_Success(true), m_Message("") {};
-
-    ~ResultMessage() {};
-
-};
-
 /********************************
     Tradutor
 *********************************/
@@ -81,11 +63,13 @@ private:
     string m_IA32_text;
     string m_Accumulator;
     string m_Warnings;
+    string m_Log;
 
     uint32_t m_AllocatedMemory;
 
     map<int, string> m_Memory;
     map<int, string> m_MemoryIA32;
+    vector<int>      m_Labels;
 
     bool m_hasStopped;
 
@@ -97,15 +81,21 @@ public:
         m_IA32_text(""),
         m_Accumulator(""),
         m_Warnings(""),
+        m_Log(""),
         m_AllocatedMemory(0),
         m_Memory({}),
         m_MemoryIA32({}),
+        m_Labels({}),
         m_hasStopped(false) {}
 
     ~Translator() {};
 
-    inline string getAccumulator() { return m_Accumulator;}
-    inline void setAccumulator( string value ) { m_Accumulator = value; }
+    void initializateCode();
+    void createVariables();
+    void addMemory( int add, string value );
+
+    // inline string getAccumulator() { return m_Accumulator;}
+    // inline void setAccumulator( string value ) { m_Accumulator = value; }
 
     void ADD( string value );
     void SUB( string value );
@@ -113,7 +103,13 @@ public:
     void DIV( string value );
     void STORE( string value );
     void INPUT( string value );
+    void OUTPUT( string value );
     void COPY( string dst, string src );
+    void LOAD( string value );
+    void JMP( string value );
+    void JMPN( string value );
+    void JMPP( string value );
+    void JMPZ( string value );
 
     void STOP();
 
@@ -121,24 +117,29 @@ public:
     void addBSS( string bss );
     void addText( string text );
     void addLabel( string label );
+    void addMemoryLabel( int add );
     void addEqu( string data, string value );
 
-    void addMemory( int add, string value );
     string getMemoryValue( string add );
-    void createVariables();
 
-    void addWarning( string label );
+    void addWarning( string value );
+    void addLog( string value );
     void showMemory();
 
-    void initializateCode();
+    string getLog();
     string getCode();
     string getWarnings();
+    vector<int> getLabels(); 
     
     inline bool hasStopped() { return m_hasStopped; };
     inline void setStopped( bool value ) { m_hasStopped = value; };
 
 };
-// Definicoes do Tradutor
+/********************************
+    Definicoes do Tradutor
+*********************************/
+
+// Funcoes de traducao
 inline void Translator::addLabel( string label )
 {
     m_IA32_text += label + ":\n";
@@ -175,26 +176,51 @@ inline void Translator::addMemory( int add, string value )
     m_MemoryIA32[add] = "var" + to_string(add);
 }
 
+inline void Translator::addMemoryLabel( int address )
+{
+    // Verifica se a label ja existe e adiciona se for nova
+    if( std::find(m_Labels.begin(), m_Labels.end(), address) == m_Labels.end() )
+    {
+        m_Labels.push_back(address);
+    }
+}
+
 inline string Translator::getMemoryValue( string add )
 {
     return m_Memory[stoi(add)];
 }
 
+// Mostra a memoria na tela
 void Translator::showMemory()
 {
+    cout << "Espacos para alocar:" << endl;
     for( auto it = m_Memory.begin(); it != m_Memory.end(); ++it)
     {
-        cout << " Address: " << it->first << " | Value: " << it->second << endl;
+        cout << " Endereco: " << it->first << " | Valor: " << it->second << endl;
     }
     cout << endl;
+    
+    cout << "Memoria:" << endl;
     for( auto it = m_MemoryIA32.begin(); it != m_MemoryIA32.end(); ++it)
     {
-        cout << " Address: " << it->first << " | Value: " << it->second << endl;
+        cout << " Endereco: " << it->first << " | Valor: " << it->second << endl;
     }
     cout << endl;
+
+    cout << "Labels inferidas:" << endl << " ";
+    for( int n : m_Labels )
+    {
+        cout << n << " - ";
+    }
 }
 
-// verifica as variaveis e cria a variavel no codigo IA32
+// Adiciona uma entrada nos logs
+void Translator::addLog( string value )
+{
+    m_Log += " - " + value + "\n";
+}
+
+// Verifica as variaveis e cria a variavel no codigo IA32
 void Translator::createVariables()
 {
     for( auto it = m_Memory.begin(); it != m_Memory.end(); ++it)
@@ -215,6 +241,7 @@ void Translator::createVariables()
     }
 }
 
+// Inicializa com o codigo base
 void Translator::initializateCode()
 {
     m_IA32_data = "section .data\n";
@@ -229,6 +256,7 @@ void Translator::initializateCode()
     addLabel("_start");
 } 
 
+// Retorna o codigo em IA32 final
 inline string Translator::getCode()
 {
     return m_IA32_data + "\n" + m_IA32_bss + "\n" + m_IA32_text;
@@ -237,6 +265,16 @@ inline string Translator::getCode()
 inline string Translator::getWarnings()
 {
     return m_Warnings;
+}
+
+inline string Translator::getLog()
+{
+    return m_Log;
+}
+
+inline vector<int> Translator::getLabels()
+{
+    return m_Labels;
 }
 
 /********************************
@@ -281,6 +319,10 @@ inline void Translator::INPUT( string value )
 {
     addText("mov [ACC], [" + m_MemoryIA32[stoi(value)] + "]");
 }
+inline void Translator::OUTPUT( string value )
+{
+    addText("OUTPUT [" + m_MemoryIA32[stoi(value)] + "]");
+}
 inline void Translator::COPY( string dst, string src)
 {
     addText("mov [" + m_MemoryIA32[stoi(dst)] + "], [" + m_MemoryIA32[stoi(src)] + "]");
@@ -288,6 +330,41 @@ inline void Translator::COPY( string dst, string src)
 inline void Translator::STORE( string value )
 {
     addText("mov " + m_MemoryIA32[stoi(value)] + ", [ACC]");
+}
+inline void Translator::LOAD( string value )
+{
+    addText("mov [ACC], " + value);
+}
+/*
+    JUMPS
+
+    Compara com o ACC para saber o que fazer
+
+    JMP -> pulo direto
+    JMPN (jl) -> se ACC < 0,  entao pula
+    JMPP (jg) -> se ACC > 0,  entao pula
+    JMPZ (je) -> se ACC == 0, entao pula
+
+    Eh preciso comparar (cmp) antes de realizar o pulo.
+*/
+inline void Translator::JMP( string value )
+{
+    addText("jmp LABEL" + value);
+}
+inline void Translator::JMPN( string value )
+{
+    addText("cmp [ACC], 0");
+    addText("jl LABEL" + value);
+}
+inline void Translator::JMPP( string value )
+{
+    addText("cmp [ACC], 0");
+    addText("jg LABEL" + value);
+}
+inline void Translator::JMPZ( string value )
+{
+    addText("cmp [ACC], 0");
+    addText("je LABEL" + value);
 }
 inline void Translator::STOP()
 {

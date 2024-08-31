@@ -50,16 +50,38 @@ int main( int argc, char *argv[] )
     translator.initializateCode();
 
     // Traduzindo o Assembly
-    // Primeira passagem para definir os espacos de memoria
+    // Primeira passagem para definir os espacos de memoria e as Labels
     for (int i = 0; i < program_source.size(); ++i)
     {
         // Adquirindo o tamanho da intrucao
         int memSpcae = getMemorySpace(program_source[i]);
 
+        // Se o programa encerrar, tudo depois eh espaco de memoria.
+        // Se for um pulo, salva o destino como uma Label
         if( !translator.hasStopped() )
         {
             switch (stoi(program_source[i]))
             {
+                case 5:  // JMP
+                    i++;
+                    translator.addLog("JMP para " + program_source[i]);
+                    translator.addMemoryLabel(stoi(program_source[i]));
+                    break;
+                case 6:  // JMPN
+                    i++;
+                    translator.addLog("JMPN para " + program_source[i]);
+                    translator.addMemoryLabel(stoi(program_source[i]));
+                    break;
+                case 7:  // JMPP
+                    i++;
+                    translator.addLog("JMPP para " + program_source[i]);
+                    translator.addMemoryLabel(stoi(program_source[i]));
+                    break;
+                case 8:  // JMPZ
+                    i++;
+                    translator.addLog("JMPZ para " + program_source[i]);
+                    translator.addMemoryLabel(stoi(program_source[i]));
+                    break;
                 case 14: // STOP
                     translator.setStopped(true);
                     break;
@@ -79,11 +101,24 @@ int main( int argc, char *argv[] )
     for (int i = 0; i < program_source.size(); ++i)
     {
 
-        // Adquirindo o tamanho da intrucao
+        // Adquirindo o tamanho da instrucao
         int memSpcae = getMemorySpace(program_source[i]);
 
         if( !translator.hasStopped() )
         {
+            // Adiciona uma label caso encontre Jumps
+            if( translator.getLabels().size() != 0 )
+            {
+                for( int label : translator.getLabels() )
+                {
+                    if( label == i )
+                    {
+                        translator.addLabel("LABEL" + to_string(i));
+                    }
+                }
+            }
+
+            // Traducao
             switch (stoi(program_source[i]))
             {
                 case 1:  // ADD
@@ -104,15 +139,19 @@ int main( int argc, char *argv[] )
                     break;
                 case 5:  // JMP
                     i++;
+                    translator.JMP(program_source[i]);
                     break;
                 case 6:  // JMPN
                     i++;
+                    translator.JMPN(program_source[i]);
                     break;
                 case 7:  // JMPP
                     i++;
+                    translator.JMPP(program_source[i]);
                     break;
                 case 8:  // JMPZ
                     i++;
+                    translator.JMPZ(program_source[i]);
                     break;
                 case 9:  // COPY
                     translator.COPY(program_source[i + 1],program_source[i + 2]);
@@ -120,9 +159,11 @@ int main( int argc, char *argv[] )
                     break;
                 case 10: // LOAD
                     i++;
+                    translator.LOAD(program_source[i]);
                     break;
                 case 11: // STORE
                     i++;
+                    translator.STORE(program_source[i]);
                     break;
                 case 12: // INPUT
                     i++;
@@ -130,6 +171,7 @@ int main( int argc, char *argv[] )
                     break;
                 case 13: // OUTPUT
                     i++;
+                    translator.OUTPUT(program_source[i]);
                     break;
                 case 14: // STOP
                     translator.STOP();
@@ -148,18 +190,20 @@ int main( int argc, char *argv[] )
 
     // Mostrando os resultados
     system("clear");
-    cout << "| Lucas Pena [13/0056162]\n"
+    cout 
+    << "| Lucas Pena [13/0056162]\n"
     << "| Tradutor de Assembly Inventado para IA-32.\n"
-    << "----------------------------------------------\n\n"
-    << "Programa inserido\n---------------------------\n ";
+    << "----------------------------------------------";
+    // << "Programa inserido\n---------------------------\n ";
 
-    for (auto i = program_source.begin(); i != program_source.end(); ++i)
-    {
-        cout << *i << " ";
-    }
+    // for (auto i = program_source.begin(); i != program_source.end(); ++i)
+    // {
+    //     cout << *i << " ";
+    // }
 
     cout << "\n\nCodigo gerado \n---------------------------\n";
     cout << translator.getCode(); 
+
     cout << "\n" << endl << "\nWarnings\n---------------------------\n";
     if(translator.getWarnings() == "")
     {
@@ -167,8 +211,17 @@ int main( int argc, char *argv[] )
     } else {
         cout << translator.getWarnings();
     }
+
+    if(translator.getLog() != "")
+    {
+        cout << "\n" << endl << "\nLog\n---------------------------\n";
+        cout << translator.getLog();
+    }
+
     cout << "\n\nMemoria\n---------------------------\n";
     translator.showMemory();
+
+    cout << "\n\n" <<endl;
     // << "Aperte enter para sair..." << endl;
     // cin.get();
 
