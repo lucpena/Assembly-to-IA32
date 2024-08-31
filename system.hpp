@@ -170,13 +170,13 @@ inline void Translator::addWarning( string text )
     m_Warnings += "- " + text + "\n";
 }
 
-inline void Translator::addMemory( int add, string value )
+void Translator::addMemory( int add, string value )
 {
     m_Memory[add] = value;
     m_MemoryIA32[add] = "var" + to_string(add);
 }
 
-inline void Translator::addMemoryLabel( int address )
+void Translator::addMemoryLabel( int address )
 {
     // Verifica se a label ja existe e adiciona se for nova
     if( std::find(m_Labels.begin(), m_Labels.end(), address) == m_Labels.end() )
@@ -300,14 +300,14 @@ inline void Translator::SUB( string value)
 {
     addText("sub [ACC], [" + m_MemoryIA32[stoi(value)] + "]");
 }
-inline void Translator::MUL( string value)
+void Translator::MUL( string value)
 {
     addText("mov eax, [ACC]");
     addText("mov ebx, [" + m_MemoryIA32[stoi(value)] + "]");
     addText("imul ebx");
     addText("mov [ACC], eax");
 }
-inline void Translator::DIV( string value)
+void Translator::DIV( string value)
 {
     addText("mov ecx, [ACC]");
     addText("mov eax, [" + m_MemoryIA32[stoi(value)] + "]");
@@ -351,22 +351,22 @@ inline void Translator::JMP( string value )
 {
     addText("jmp LABEL" + value);
 }
-inline void Translator::JMPN( string value )
+void Translator::JMPN( string value )
 {
     addText("cmp [ACC], 0");
     addText("jl LABEL" + value);
 }
-inline void Translator::JMPP( string value )
+void Translator::JMPP( string value )
 {
     addText("cmp [ACC], 0");
     addText("jg LABEL" + value);
 }
-inline void Translator::JMPZ( string value )
+void Translator::JMPZ( string value )
 {
     addText("cmp [ACC], 0");
     addText("je LABEL" + value);
 }
-inline void Translator::STOP()
+void Translator::STOP()
 {
     addText("mov eax, 1");
     addText("xor ebx, ebx");
