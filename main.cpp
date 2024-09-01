@@ -82,6 +82,10 @@ int main( int argc, char *argv[] )
                     translator.addLog("JMPZ para " + program_source[i]);
                     translator.addMemoryLabel(stoi(program_source[i]));
                     break;
+                case 12: // INPUT
+                    i++;
+                    translator.handleINPUT(program_source[i]);
+                    break;
                 case 14: // STOP
                     translator.setStopped(true);
                     break;
@@ -183,10 +187,16 @@ int main( int argc, char *argv[] )
         }
     }
 
-
     // Parte Opcional
     // Adicionar novos OPCODES ( S_INPUT | S_OUTPUT )
 
+    // Salvando o programa em um arquivo texto
+    
+    string inputName = argv[1];
+    string outputName = "out-" + inputName.substr(0, inputName.find_last_of('.')) + ".asm";
+    ofstream out(outputName);
+    out << translator.getCode();
+    out.close();
 
     // Mostrando os resultados
     system("clear");
@@ -201,10 +211,7 @@ int main( int argc, char *argv[] )
     //     cout << *i << " ";
     // }
 
-    cout << "\n\nCodigo gerado \n---------------------------\n";
-    cout << translator.getCode(); 
-
-    cout << "\n" << endl << "\nWarnings\n---------------------------\n";
+    cout << endl << "\nWarnings\n---------------------------\n";
     if(translator.getWarnings() == "")
     {
         cout << " Sem warnings.";
@@ -220,6 +227,10 @@ int main( int argc, char *argv[] )
 
     cout << "\n\nMemoria\n---------------------------\n";
     translator.showMemory();
+
+    
+    cout << "\n\nCodigo gerado \n---------------------------\n";
+    cout << translator.getCode(); 
 
     cout << "\n\n" <<endl;
     // << "Aperte enter para sair..." << endl;

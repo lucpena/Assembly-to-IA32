@@ -12,6 +12,7 @@
 #include <unistd.h>
 #include <algorithm>
 #include <cstdlib>
+#include <limits>
 
 using std::endl;
 using std::cout;
@@ -47,21 +48,23 @@ map<int, string> instructions =
 	{7, "JMPP"}, {8, "JMPZ"}, {9, "COPY"},
 	{10, "LOAD"}, {11, "STORE"}, {12, "INPUT"},
 	{13, "OUTPUT"}, {14, "STOP"}
-};
+}; 
 
 /********************************
     Tradutor
 *********************************/
-vector<string>  program_source  = {};
+vector<string> program_source  = {};
+map<int, string> inputs = {};
 
 class Translator
 {
 private:
 
+    int m_Accumulator;
+
     string m_IA32_data;
     string m_IA32_bss;
     string m_IA32_text;
-    string m_Accumulator;
     string m_Warnings;
     string m_Log;
 
@@ -79,7 +82,7 @@ public:
         m_IA32_data(""), 
         m_IA32_bss(""), 
         m_IA32_text(""),
-        m_Accumulator(""),
+        m_Accumulator(0),
         m_Warnings(""),
         m_Log(""),
         m_AllocatedMemory(0),
@@ -99,7 +102,7 @@ public:
 
     void ADD( string value );
     void SUB( string value );
-    void MUL( string value );
+    string MUL( string value );
     void DIV( string value );
     void STORE( string value );
     void INPUT( string value );
@@ -113,26 +116,29 @@ public:
 
     void STOP();
 
-    void addData( string data );
+    void addData( string data, string value );
     void addBSS( string bss );
     void addText( string text );
     void addLabel( string label );
     void addMemoryLabel( int add );
     void addEqu( string data, string value );
 
-    string getMemoryValue( string add );
-
     void addWarning( string value );
     void addLog( string value );
     void showMemory();
 
+    string getMemoryValue( string add );
     string getLog();
     string getCode();
     string getWarnings();
     vector<int> getLabels(); 
+    int getAcc();
+
+    void setAcc( string value );
     
     inline bool hasStopped() { return m_hasStopped; };
     inline void setStopped( bool value ) { m_hasStopped = value; };
+    void handleINPUT( string value );
 
 };
 /********************************
@@ -145,9 +151,9 @@ inline void Translator::addLabel( string label )
     m_IA32_text += label + ":\n";
 }
 
-inline void Translator::addData( string data )
+inline void Translator::addData( string data, string value )
 {
-    m_IA32_data += "    " + data + " dd 0\n";
+    m_IA32_data += "    " + data + " dd " + value + "\n";
 }
 
 inline void Translator::addEqu( string data, string value )
@@ -190,6 +196,16 @@ inline string Translator::getMemoryValue( string add )
     return m_Memory[stoi(add)];
 }
 
+int Translator::getAcc()
+{
+    return m_Accumulator;
+}
+
+inline void Translator::setAcc( string value )
+{
+    m_Accumulator = stoi(value);
+}
+
 // Mostra a memoria na tela
 void Translator::showMemory()
 {
@@ -202,6 +218,13 @@ void Translator::showMemory()
     
     cout << "Memoria:" << endl;
     for( auto it = m_MemoryIA32.begin(); it != m_MemoryIA32.end(); ++it)
+    {
+        cout << " Endereco: " << it->first << " | Valor: " << it->second << endl;
+    }
+    cout << endl;
+
+    cout << "Inputs:" << endl;
+    for( auto it = inputs.begin(); it != inputs.end(); ++it)
     {
         cout << " Endereco: " << it->first << " | Valor: " << it->second << endl;
     }
@@ -225,17 +248,25 @@ void Translator::createVariables()
 {
     for( auto it = m_Memory.begin(); it != m_Memory.end(); ++it)
     {
-        if(it->second =="0")
+        if(it->second == "0")
         {
-            if(m_MemoryIA32.find(it->first) != m_MemoryIA32.end())
+            // Se for um input
+            if(inputs.find(it->first) != inputs.end())
             {
-                addBSS( m_MemoryIA32[it->first]);
+                addData( m_MemoryIA32[it->first], inputs[it->first] );
             }
-        }
-        else{
+            // Se for um espaco de memoria
+            else if(m_MemoryIA32.find(it->first) != m_MemoryIA32.end())
+            {
+                addBSS( m_MemoryIA32[it->first] );
+            }
+        }        
+        else
+        {
+            // Se for uma constante
             if(m_MemoryIA32.find(it->first) != m_MemoryIA32.end())
             {
-                addEqu(m_MemoryIA32[it->first], it->second);
+                addEqu( m_MemoryIA32[it->first], it->second );
             }
         }
     }
@@ -249,7 +280,7 @@ void Translator::initializateCode()
     m_IA32_text = "section .text\n";
 
     // Inicializa o Acumulador em memória
-    addData("ACC");
+    addData("ACC", "0");
 
     // Inicializa o start
     addText("global _start\n");
@@ -277,6 +308,18 @@ inline vector<int> Translator::getLabels()
     return m_Labels;
 }
 
+// Caso tenha um INPUT, esse valor será pedido
+void Translator::handleINPUT( string address )
+{
+    string value = "";
+
+    system("clear");
+    cout << "\n INPUT detectado. Entre com um inteiro com sinal valido: ";
+    cin >> value;
+
+    inputs[stoi(address)] = value;
+}
+
 /********************************
     OPCODES
 *********************************
@@ -292,20 +335,45 @@ Assembly:
     SRC + ACC -> ACC
 */
 
-inline void Translator::ADD( string value)
+inline void Translator::ADD( string value )
 {
-    addText("add [ACC], []" + m_MemoryIA32[stoi(value)] + "]");
+    int result = stoi(value) + getAcc();
+
+    setAcc(to_string(result));
+
+    addText("add [ACC], [" + m_MemoryIA32[stoi(value)] + "]");
 }
 inline void Translator::SUB( string value)
 {
+    int result = stoi(value) - getAcc();
+
+    setAcc(to_string(result));
+
     addText("sub [ACC], [" + m_MemoryIA32[stoi(value)] + "]");
 }
-void Translator::MUL( string value)
+// retorna o status do Overflow
+string Translator::MUL( string value )
 {
+    string status = "OK";
+
+    // Checa se houve overflow na multiplicacao.
+    cout << "Value: " << value << " | " << "ACC: " << getAcc();
+    cin.get();
+    int a = stoi(value);
+    int b = getAcc();
+
+    long test = static_cast<long>(a) * static_cast<long>(b);
+    if( test > std::numeric_limits<int>::max() || test < std::numeric_limits<int>::min() )
+    {
+        status = "Overflow";
+    }
+
     addText("mov eax, [ACC]");
     addText("mov ebx, [" + m_MemoryIA32[stoi(value)] + "]");
     addText("imul ebx");
     addText("mov [ACC], eax");
+
+    return status;
 }
 void Translator::DIV( string value)
 {
@@ -317,11 +385,12 @@ void Translator::DIV( string value)
 }
 inline void Translator::INPUT( string value )
 {
-    addText("mov [ACC], [" + m_MemoryIA32[stoi(value)] + "]");
+    // setAcc(value);
+    addText(";INPUT");
 }
 inline void Translator::OUTPUT( string value )
 {
-    addText("OUTPUT [" + m_MemoryIA32[stoi(value)] + "]");
+    addText(";OUTPUT [" + m_MemoryIA32[stoi(value)] + "]");
 }
 inline void Translator::COPY( string dst, string src)
 {
@@ -329,11 +398,12 @@ inline void Translator::COPY( string dst, string src)
 }
 inline void Translator::STORE( string value )
 {
-    addText("mov " + m_MemoryIA32[stoi(value)] + ", [ACC]");
+    addText("mov [" + m_MemoryIA32[stoi(value)] + "], [ACC]");
 }
 inline void Translator::LOAD( string value )
 {
-    addText("mov [ACC], " + value);
+    setAcc(value);
+    addText("mov [ACC], [" + m_MemoryIA32[stoi(value)] + "]");
 }
 /*
     JUMPS
@@ -408,5 +478,6 @@ int getMemorySpace( unsigned int instruction )
 
     return 2;
 }
+
 
 #endif
