@@ -83,8 +83,14 @@ int main( int argc, char *argv[] )
                     translator.addMemoryLabel(stoi(program_source[i]));
                     break;
                 case 12: // INPUT
-                    i++;
-                    translator.handleINPUT(program_source[i]);
+                    translator.setHasInput(true);
+                    translator.addLog("Input: " + program_source[i + 1]);
+                    translator.addMemory(stoi(program_source[i + 1]), "0");
+                    break;
+                case 13: // OUTPUT
+                    translator.setHasOutput(true);
+                    translator.addLog("Output: " + program_source[i + 1]);
+                    translator.addMemory(stoi(program_source[i + 1]), "0");
                     break;
                 case 14: // STOP
                     translator.setStopped(true);
@@ -123,61 +129,85 @@ int main( int argc, char *argv[] )
             }
 
             // Traducao
+            string status = "";
+
             switch (stoi(program_source[i]))
             {
                 case 1:  // ADD
+                    translator.addText("; ADD");
                     i++;
                     translator.ADD(program_source[i]);
                     break;
                 case 2:  // SUB
+                    translator.addText("; SUB");
                     i++;
                     translator.SUB(program_source[i]);
                     break;
                 case 3:  // MUL
+                    translator.addText("; MUL");
                     i++;
-                    translator.MUL(program_source[i]);
+
+                    status = translator.MUL(program_source[i]);
+
+                    if( status == "Overflow")
+                    {
+                        translator.addWarning("OVERFLOW DETECTADO!!");
+                    }
+
+                    status = "";
                     break;
                 case 4:  // DIV
+                    translator.addText("; DIV");
                     i++;
                     translator.DIV(program_source[i]);
                     break;
                 case 5:  // JMP
+                    translator.addText("; JMP");
                     i++;
                     translator.JMP(program_source[i]);
                     break;
                 case 6:  // JMPN
+                    translator.addText("; JMPN");
                     i++;
                     translator.JMPN(program_source[i]);
                     break;
                 case 7:  // JMPP
+                    translator.addText("; JMPP");
                     i++;
                     translator.JMPP(program_source[i]);
                     break;
                 case 8:  // JMPZ
+                    translator.addText("; JUMPZ");
                     i++;
                     translator.JMPZ(program_source[i]);
                     break;
                 case 9:  // COPY
+                    translator.addText("; COPY");
                     translator.COPY(program_source[i + 1],program_source[i + 2]);
                     i += 2;
                     break;
                 case 10: // LOAD
+                    translator.addText("; LOAD");
                     i++;
                     translator.LOAD(program_source[i]);
                     break;
                 case 11: // STORE
+                    translator.addText("; STORE");
                     i++;
                     translator.STORE(program_source[i]);
                     break;
                 case 12: // INPUT
+                    translator.addText("; INPUT");
                     i++;
                     translator.INPUT(program_source[i]);
                     break;
                 case 13: // OUTPUT
+                    translator.addText("; OUTPUT");
                     i++;
                     translator.OUTPUT(program_source[i]);
                     break;
                 case 14: // STOP
+                    translator.addText("; STOP");
                     translator.STOP();
                     break;
                 default: // Unknown opcode
@@ -187,8 +217,8 @@ int main( int argc, char *argv[] )
         }
     }
 
-    // Parte Opcional
-    // Adicionar novos OPCODES ( S_INPUT | S_OUTPUT )
+    // Checar se houve INPUT ou OUTPUT para adicionar estas funcoes no final do programa
+    translator.checkFunctions();
 
     // Salvando o programa em um arquivo texto
     

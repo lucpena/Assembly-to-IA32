@@ -12,6 +12,18 @@ Para usar o tradutor, use o seguinte comando:
 
 > ./tradutor sample.obj
 
-Notas:
-- Este trabalho foi feito no Windows 11, mas foi compilado, executado e testado em
+Deixei o script que usei para compilar e rodar o trabalho ao mesmo tempo, caso
+tenha interesse em usá-lo, use os seguintes comandos:
+
+> chmod +x tradutor.sh
+> ./tradutor.sh sample.obj
+
+## Ambiente de desenvolvimento
+- Este trabalho foi feito em Windows 11, mas foi compilado, executado e testado em
 ambiente Linux Ubuntu, através do WSL.
+
+## Observações sobre a execução
+
+- Os logs e tabelas usadas durante o desenvolvimento foram deixadas no terminal
+pois podem ser úteis na correção do trabalho.
+- O arquivo gerado tem o nome de out-sample.asm para um programa sample.obj.
